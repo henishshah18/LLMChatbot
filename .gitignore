@@ -1,0 +1,9 @@
+# Python virtual environment
+venv/
+env/
+.pip/
+pip/
+Lib
+models
+Scripts
+Include
