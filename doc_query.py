@@ -15,15 +15,6 @@ from langchain.vectorstores.faiss import FAISS
 # 
 # If you want a chat style interface using a similar custom knowledge base, you can use the custom_chatbot.py script provided.
 
-# Setup 
-gpt4all_path = './models/ggml-gpt4all-j-v1.3-groovy.bin' 
-llama_path = './models/llama-7b.ggmlv3.q4_0.bin' 
-# llama_path = './models/ggml-model-q4_0.bin.7' 
-
-# callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
-loader = TextLoader('./data/whatsapp_policy.txt')
-embeddings = LlamaCppEmbeddings(model_path=llama_path)
-llm = GPT4All(model=gpt4all_path, callbacks=[StreamingStdOutCallbackHandler()], verbose=True)
 
 # Split text 
 def split_chunks(sources):
@@ -57,34 +48,46 @@ def similarity_search(query, index):
     return matched_docs, sources
 
 
-# Create Index
-docs = loader.load()
-chunks = split_chunks(docs)
-index = create_index(chunks)
+# # Create Index
+# docs = loader.load()
+# chunks = split_chunks(docs)
+# index = create_index(chunks)
 
-# Save Index (use this to save the index for later use)
-# Comment the line below after running once successfully (IMPORTANT)
+# # Save Index (use this to save the index for later use)
+# # Comment the line below after running once successfully (IMPORTANT)
 
-index.save_local("whatsapp_policy_test_index")
+# index.save_local("whatsapp_policy_test_index")
 
 # Load Index (use this to load the index from a file, eg on your second time running things and beyond)
 # Uncomment the line below after running once successfully (IMPORTANT)
 
-# index = FAISS.load_local("./full_sotu_index", embeddings)
 
-# # Set your query here manually
-# question = "Summarize the comments about NATO and its purpose."
-# matched_docs, sources = similarity_search(question, index)
+if __name__ == "__main__":
+    # Setup 
+    gpt4all_path = './models/ggml-gpt4all-j-v1.3-groovy.bin' 
+    llama_path = './models/llama-7b.ggmlv3.q4_0.bin' 
+    # llama_path = './models/ggml-model-q4_0.bin.7' 
 
-# template = """
-# Please use the following context to answer questions.
-# Context: {context}
-# ---
-# Question: {question}
-# Answer: Let's think step by step."""
+    # callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+    loader = TextLoader('./data/whatsapp_policy.txt')
+    embeddings = LlamaCppEmbeddings(model_path=llama_path)
+    llm = GPT4All(model=gpt4all_path, callbacks=[StreamingStdOutCallbackHandler()], verbose=True)
 
-# context = "\n".join([doc.page_content for doc in matched_docs])
-# prompt = PromptTemplate(template=template, input_variables=["context", "question"]).partial(context=context)
-# llm_chain = LLMChain(prompt=prompt, llm=llm)
+    index = FAISS.load_local("./whatsapp_policy_test_index", embeddings)
 
-# print(llm_chain.run(question))
+    # Set your query here manually
+    question = "Does whatsapp record my conversations?"
+    matched_docs, sources = similarity_search(question, index)
+
+    template = """
+    Please use the following context to answer questions.
+    Context: {context}
+    ---
+    Question: {question}
+    Answer: """
+
+    context = "\n".join([doc.page_content for doc in matched_docs])
+    prompt = PromptTemplate(template=template, input_variables=["context", "question"]).partial(context=context)
+    llm_chain = LLMChain(prompt=prompt, llm=llm)
+
+    print(llm_chain.run(question))
